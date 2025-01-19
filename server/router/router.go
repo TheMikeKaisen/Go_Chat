@@ -11,6 +11,8 @@ func InitRouter(userHandler *user.Handler) {
 	r = gin.Default() // creates the router with default settings
 
 	r.POST("/signup", userHandler.CreateUser)
+	r.POST("/login", userHandler.LoginUser)
+	r.GET("/logout", userHandler.LogoutUser)
 }
 
 func Start(addr string) error {
