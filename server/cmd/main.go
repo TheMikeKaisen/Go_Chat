@@ -5,6 +5,7 @@ import (
 
 	"github.com/TheMikeKaisen/Go_Chat/db"
 	"github.com/TheMikeKaisen/Go_Chat/internal/user"
+	"github.com/TheMikeKaisen/Go_Chat/internal/ws"
 	"github.com/TheMikeKaisen/Go_Chat/router"
 )
 
@@ -18,6 +19,11 @@ func main() {
 	userSvc := user.NewService(userRep)
 	userHandler := user.NewHandler(userSvc)
 
-	router.InitRouter(userHandler)
+	// instantiate web socket hub
+	hub := ws.NewHub()
+	wsHandler := ws.NewHandler(hub)
+
+
+	router.InitRouter(userHandler, wsHandler)
 	router.Start("0.0.0.0:8080")
 }
