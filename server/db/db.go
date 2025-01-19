@@ -16,7 +16,7 @@ func NewDatabase() (*Database, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	
 	return &Database{db: db}, nil
 }
 
