@@ -88,6 +88,33 @@ go run main.go
 
 The backend server will run on `http://localhost:8080`.
 
+5. **Create a user using Postman:**
+    
+    Since login functionality requires an existing user, follow these steps to create a user:
+    
+    - **Endpoint:** `POST /signup`
+    - **Body:**
+        
+        ```json
+        {
+          "username": "testuser",
+          "email": "testuser@example.com",
+          "password": "password123"
+        }
+        
+        ```
+        
+    - **Response:**
+        
+        ```json
+        {
+          "id": 1,
+          "username": "testuser",
+          "email": "testuser@example.com"
+        }
+        
+        ```
+
 ---
 
 ## Frontend Setup
