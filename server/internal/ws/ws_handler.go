@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 )
 
 type Handler struct {
@@ -43,4 +44,93 @@ func (h *Handler) CreateRoom(c *gin.Context) {
 	c.JSON(http.StatusOK, req)
 }
 
+// upgrades your http connection to a websocket connection
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
 
+func (h *Handler) JoinRoom(c *gin.Context) {
+
+	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		log.Println("Error while upgrading http connection to web socket connection!")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// request will be received in this format:- http://localhost:8080/ws/joinRoom/3?userId=1234?username=karthik
+	// extract the params and queries
+	roomId := c.Param("roomId")
+	userId := c.Query("userId")
+	username := c.Query("username")
+
+	cl := &Client{
+		Conn:     conn,
+		Message:  make(chan *Message), // initialize an empty message channel
+		ID:       userId,
+		RoomId:   roomId,
+		Username: username,
+	}
+
+	m := &Message{
+		Content:  "A new user has joined the room",
+		RoomID:   roomId,
+		Username: username,
+	}
+
+	// register a new client through register channel
+	h.hub.Register <- cl
+
+	// Broadcast the message
+	h.hub.Broadcast <- m
+
+	go cl.writeMessage()
+	cl.readMessage(h.hub)
+
+}
+
+type RoomRes struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+func (h *Handler) GetRooms(c *gin.Context) {
+	rooms := make([]RoomRes, 0)
+
+	for _, r := range h.hub.Rooms {
+		rooms = append(rooms, RoomRes{
+			ID:   r.ID,
+			Name: r.Name,
+		})
+	}
+
+	c.JSON(http.StatusOK, rooms)
+}
+
+type ClientRes struct {
+	ID       string `json:"id"`
+	Username string `json:"username"`
+}
+
+func (h *Handler) GetClients(c *gin.Context) {
+	var clients []ClientRes
+	roomId := c.Param("roomId")
+
+	if _, ok := h.hub.Rooms[roomId]; !ok {
+		clients = make([]ClientRes, 0)
+		c.JSON(http.StatusOK, clients)
+	}
+
+	for _, c := range h.hub.Rooms[roomId].Clients {
+		clients = append(clients, ClientRes{
+			ID:       c.ID,
+			Username: c.Username,
+		})
+	}
+
+	c.JSON(http.StatusOK, clients)
+}
